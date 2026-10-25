@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090d" />
+  <meta name="description" content="Live football stat pole — rush &amp; receiving yards from ESPN" />
+  <title>Stat Pole · Live Football</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='32' fill='%2322c55e'%3E%23%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #07090d;
+      --bg2: #0c1118;
+      --panel: #121821;
+      --panel2: #171e29;
+      --line: #243041;
+      --line2: #1a2330;
+      --text: #e8eef7;
+      --muted: #8b9bb0;
+      --dim: #5c6b7e;
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, 0.15);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.15);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.15);
+      --radius: 14px;
+      --shadow: 0 10px 40px rgba(0,0,0,.35);
+      --font: Inter, system-ui, sans-serif;
+      --display: Oswald, Inter, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(34,197,94,.08), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(59,130,246,.07), transparent 50%),
+        var(--bg);
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+    header.app {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(145deg, #163024, #0f172a);
+      border: 1px solid #234; display: grid; place-items: center;
+      font-family: var(--display); font-weight: 700; color: var(--green); font-size: 22px;
+      box-shadow: inset 0 0 20px rgba(34,197,94,.15);
+    }
+    .brand h1 {
+      margin: 0; font-family: var(--display); font-weight: 700; letter-spacing: .04em;
+      font-size: 1.55rem; text-transform: uppercase;
+    }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: .82rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .seg {
+      display: inline-flex; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 999px; padding: 3px; gap: 2px;
+    }
+    .seg button {
+      border: 0; background: transparent; color: var(--muted); font: 600 .82rem var(--font);
+      padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: .15s ease;
+    }
+    .seg button.active { background: var(--green-dim); color: var(--green); }
+    .seg button:hover:not(.active) { color: var(--text); }
+    button.icon, button.refresh {
+      border: 1px solid var(--line); background: var(--panel); color: var(--text);
+      border-radius: 999px; padding: 9px 14px; font: 600 .82rem var(--font); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    button.refresh:hover { border-color: #3a4d66; }
+    button.refresh:disabled { opacity: .55; cursor: wait; }
+    .meta-bar {
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+      color: var(--muted); font-size: .8rem; margin-bottom: 14px;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); display: inline-block; }
+    .dot.live { background: var(--red); box-shadow: 0 0 0 4px var(--red-dim); animation: pulse 1.4s infinite; }
+    .dot.ok { background: var(--green); }
+    @keyframes pulse { 50% { opacity: .45; } }
+    .games {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px; margin-bottom: 18px;
+    }
+    .game {
+      text-align: left; border: 1px solid var(--line2); background: var(--panel);
+      border-radius: var(--radius); padding: 12px 14px; cursor: pointer; color: inherit;
+      transition: border-color .15s, transform .15s, background .15s; box-shadow: none;
+      font: inherit;
+    }
+    .game:hover { border-color: #355; transform: translateY(-1px); }
+    .game.selected { border-color: var(--green); background: linear-gradient(180deg, #132018, var(--panel)); box-shadow: var(--shadow); }
+    .game-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+    .badge {
+      font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 999px;
+    }
+    .badge.live { background: var(--red-dim); color: #fca5a5; }
+    .badge.final { background: #1f2937; color: #9ca3af; }
+    .badge.sched { background: var(--blue-dim); color: #93c5fd; }
+    .clock { color: var(--dim); font-size: .75rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 5px 0; }
+    .team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .team img { width: 22px; height: 22px; object-fit: contain; }
+    .team span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; font-size: .92rem; }
+    .score { font-family: var(--display); font-size: 1.25rem; font-weight: 700; letter-spacing: .03em; min-width: 1.5ch; text-align: right; }
+    .board {
+      border: 1px solid var(--line); background: var(--bg2); border-radius: 18px;
+      overflow: hidden; box-shadow: var(--shadow);
+    }
+    .board-head {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;
+      padding: 16px 18px; border-bottom: 1px solid var(--line2);
+      background: linear-gradient(180deg, #121925, #0c1118);
+    }
+    .matchup { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .side { display: flex; align-items: center; gap: 10px; }
+    .side img { width: 36px; height: 36px; }
+    .side .name { font-family: var(--display); font-size: 1.35rem; letter-spacing: .04em; text-transform: uppercase; }
+    .vs { color: var(--dim); font-weight: 700; font-size: .85rem; }
+    .big-score { font-family: var(--display); font-size: 1.8rem; font-weight: 700; letter-spacing: .04em; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line); font-size: .8rem; color: var(--muted);
+    }
+    .cols {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    }
+    @media (max-width: 860px) {
+      .cols { grid-template-columns: 1fr; }
+    }
+    .col { border-right: 1px solid var(--line2); min-width: 0; }
+    .col:last-child { border-right: 0; }
+    @media (max-width: 860px) {
+      .col { border-right: 0; border-bottom: 1px solid var(--line2); }
+      .col:last-child { border-bottom: 0; }
+    }
+    .col-head {
+      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+      background: var(--panel2); border-bottom: 1px solid var(--line2);
+      position: sticky; top: 0; z-index: 1;
+    }
+    .col-head img { width: 28px; height: 28px; }
+    .col-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+    .col-head .sc { margin-left: auto; font-family: var(--display); font-size: 1.4rem; }
+    .section { padding: 12px 12px 4px; }
+    .section h3 {
+      margin: 0 0 8px; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--dim); font-weight: 700; padding: 0 4px;
+    }
+    table.stats {
+      width: 100%; border-collapse: collapse; margin-bottom: 10px;
+      font-size: .86rem;
+    }
+    table.stats th {
+      text-align: right; color: var(--dim); font-weight: 600; font-size: .68rem;
+      letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px;
+      border-bottom: 1px solid var(--line2);
+    }
+    table.stats th.player { text-align: left; }
+    table.stats td {
+      padding: 9px 8px; border-bottom: 1px solid rgba(36,48,65,.55); text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    table.stats tr:last-child td { border-bottom: 0; }
+    table.stats td.player { text-align: left; }
+    .pname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .jersey {
+      flex: 0 0 auto; min-width: 28px; height: 22px; padding: 0 6px; border-radius: 6px;
+      background: #0a0f16; border: 1px solid #2a384c; color: var(--muted);
+      font-family: var(--display); font-size: .85rem; display: inline-grid; place-items: center;
+    }
+    .pname .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .td-hi { color: var(--green); font-weight: 700; }
+    .empty, .error, .placeholder {
+      padding: 28px 18px; text-align: center; color: var(--muted); line-height: 1.5;
+    }
+    .error { color: #fca5a5; }
+    .placeholder { padding: 48px 20px; }
+    .skel {
+      height: 88px; border-radius: var(--radius); background: linear-gradient(90deg, #121821, #182030, #121821);
+      background-size: 200% 100%; animation: shimmer 1.2s infinite; border: 1px solid var(--line2);
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    footer.note { margin-top: 18px; color: var(--dim); font-size: .75rem; text-align: center; }
+    footer.note a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <div class="brand">
+        <div class="logo">#</div>
+        <div>
+          <h1>Stat Pole</h1>
+          <p>Live rush &amp; receiving yards · ESPN data</p>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="seg" role="tablist" aria-label="League">
+          <button type="button" id="btn-nfl" class="active" data-league="nfl">NFL</button>
+          <button type="button" id="btn-cfb" data-league="college-football">College</button>
+        </div>
+        <button type="button" class="refresh" id="btn-refresh" title="Refresh">
+          <span aria-hidden="true">↻</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <div class="meta-bar">
+      <span><span class="dot" id="status-dot"></span> <span id="status-text">Loading games…</span></span>
+      <span id="last-updated"></span>
+      <span id="auto-note"></span>
+    </div>
+
+    <div id="games" class="games" aria-label="Games"></div>
+    <div id="board" class="board" hidden></div>
+    <div id="placeholder" class="board placeholder">
+      Pick a game above to open the live stat pole.
+    </div>
+    <footer class="note">
+      Unofficial fan tool. Box scores refresh from ESPN’s public site API.
+      Not affiliated with the NFL, NCAA, or ESPN.
+    </footer>
+  </div>
+
+  <script>
+    const API = {
+      nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl',
+      'college-football': 'https://site.api.espn.com/apis/site/v2/sports/football/college-football',
+    };
+
+    const state = {
+      league: 'nfl',
+      events: [],
+      selectedId: null,
+      summary: null,
+      loadingGames: false,
+      loadingSummary: false,
+      liveTimer: null,
+      error: null,
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function statusInfo(event) {
+      const t = event?.status?.type || {};
+      const stateName = t.state || '';
+      const desc = t.shortDetail || t.detail || t.description || '';
+      if (t.completed || stateName === 'post') return { kind: 'final', label: 'Final', detail: desc };
+      if (stateName === 'in' || t.description === 'In Progress') return { kind: 'live', label: 'Live', detail: desc };
+      return { kind: 'sched', label: 'Scheduled', detail: desc || (event?.date ? new Date(event.date).toLocaleString() : '') };
+    }
+
+    function competitors(event) {
+      const comps = event?.competitions?.[0]?.competitors || [];
+      const home = comps.find(c => c.homeAway === 'home') || comps[1];
+      const away = comps.find(c => c.homeAway === 'away') || comps[0];
+      return { home, away };
+    }
+
+    function teamLogo(team) {
+      return team?.logo || team?.logos?.[0]?.href || '';
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return res.json();
+    }
+
+    async function loadScoreboard() {
+      state.loadingGames = true;
+      state.error = null;
+      $('btn-refresh').disabled = true;
+      setStatus('loading', 'Loading games…');
+      try {
+        const data = await fetchJson(`${API[state.league]}/scoreboard`);
+        state.events = data.events || [];
+        // Prefer live first, then scheduled, then final
+        state.events.sort((a, b) => {
+          const rank = (e) => {
+            const s = statusInfo(e).kind;
+            return s === 'live' ? 0 : s === 'sched' ? 1 : 2;
+          };
+          return rank(a) - rank(b);
+        });
+        renderGames();
+        const liveCount = state.events.filter(e => statusInfo(e).kind === 'live').length;
+        setStatus(liveCount ? 'live' : 'ok', `${state.events.length} games · ${liveCount} live`);
+        $('last-updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        if (state.selectedId) {
+          const still = state.events.some(e => e.id === state.selectedId);
+          if (still) await loadSummary(state.selectedId, { quiet: true });
+          else {
+            state.selectedId = null;
+            state.summary = null;
+            $('board').hidden = true;
+            $('placeholder').hidden = false;
+          }
+        }
+        scheduleAutoRefresh();
+      } catch (err) {
+        state.error = err;
+        setStatus('err', 'Couldn’t load scoreboard');
+        $('games').innerHTML = `<div class="error">Scoreboard failed: ${escapeHtml(err.message)}. Check your connection and try Refresh.</div>`;
+      } finally {
+        state.loadingGames = false;
+        $('btn-refresh').disabled = false;
+      }
+    }
+
+    async function loadSummary(eventId, { quiet = false } = {}) {
+      state.loadingSummary = true;
+      if (!quiet) {
+        $('placeholder').hidden = true;
+        $('board').hidden = false;
+        $('board').innerHTML = `<div class="empty">Loading box score…</div>`;
+      }
+      try {
+        const data = await fetchJson(`${API[state.league]}/summary?event=${encodeURIComponent(eventId)}`);
+        state.summary = data;
+        state.selectedId = eventId;
+        renderBoard();
+        scheduleAutoRefresh();
+      } catch (err) {
+        $('board').hidden = false;
+        $('placeholder').hidden = true;
+        $('board').innerHTML = `<div class="error">Box score failed: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        state.loadingSummary = false;
+      }
+    }
+
+    function setStatus(kind, text) {
+      const dot = $('status-dot');
+      dot.className = 'dot' + (kind === 'live' ? ' live' : kind === 'ok' ? ' ok' : '');
+      $('status-text').textContent = text;
+    }
+
+    function scheduleAutoRefresh() {
+      clearInterval(state.liveTimer);
+      const selected = state.events.find(e => e.id === state.selectedId);
+      const anyLive = state.events.some(e => statusInfo(e).kind === 'live');
+      const selectedLive = selected && statusInfo(selected).kind === 'live';
+      if (selectedLive || (!state.selectedId && anyLive)) {
+        $('auto-note').textContent = 'Auto-refresh ~30s while live';
+        state.liveTimer = setInterval(() => {
+          loadScoreboard();
+        }, 30000);
+      } else {
+        $('auto-note').textContent = selected ? 'Manual refresh' : (anyLive ? 'Auto-refresh ~30s' : '');
+        if (anyLive) {
+          state.liveTimer = setInterval(() => loadScoreboard(), 30000);
+          $('auto-note').textContent = 'Auto-refresh ~30s while games are live';
+        }
+      }
+    }
+
+    function renderGames() {
+      const root = $('games');
+      if (!state.events.length) {
+        root.innerHTML = `<div class="empty">No games on the scoreboard right now for this league.</div>`;
+        return;
+      }
+      root.innerHTML = state.events.map(ev => {
+        const st = statusInfo(ev);
+        const { home, away } = competitors(ev);
+        const selected = ev.id === state.selectedId ? ' selected' : '';
+        const aName = away?.team?.abbreviation || away?.team?.shortDisplayName || 'AWAY';
+        const hName = home?.team?.abbreviation || home?.team?.shortDisplayName || 'HOME';
+        const aLogo = teamLogo(away?.team);
+        const hLogo = teamLogo(home?.team);
+        const showScore = st.kind !== 'sched';
+        return `
+          <button type="button" class="game${selected}" data-id="${escapeHtml(ev.id)}" aria-pressed="${selected ? 'true' : 'false'}">
+            <div class="game-top">
+              <span class="badge ${st.kind}">${st.label}</span>
+              <span class="clock">${escapeHtml(st.detail)}</span>
+            </div>
+            <div class="row">
+              <div class="team">${aLogo ? `<img src="${escapeHtml(aLogo)}" alt="" />` : ''}<span>${escapeHtml(aName)}</span></div>
+              <div class="score">${showScore ? escapeHtml(away?.score ?? '') : '—'}</div>
+            </div>
+            <div class="row">
+              <div class="team">${hLogo ? `<img src="${escapeHtml(hLogo)}" alt="" />` : ''}<span>${escapeHtml(hName)}</span></div>
+              <div class="score">${showScore ? escapeHtml(home?.score ?? '') : '—'}</div>
+            </div>
+          </button>`;
+      }).join('');
+
+      root.querySelectorAll('.game').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          loadSummary(id);
+          // re-render selection highlight immediately
+          state.selectedId = id;
+          renderGames();
+        });
+      });
+    }
+
+    function parseStatMap(category) {
+      const keys = category.keys || [];
+      const labels = category.labels || [];
+      return (category.athletes || []).map(row => {
+        const ath = row.athlete || {};
+        const stats = {};
+        (row.stats || []).forEach((v, i) => {
+          if (keys[i]) stats[keys[i]] = v;
+          if (labels[i]) stats['label:' + labels[i]] = v;
+        });
+        return {
+          id: ath.id,
+          name: ath.displayName || `${ath.firstName || ''} ${ath.lastName || ''}`.trim() || 'Player',
+          jersey: ath.jersey != null && ath.jersey !== '' ? String(ath.jersey) : '—',
+          stats,
+        };
+      });
+    }
+
+    function findCategory(teamBlock, names) {
+      const stats = teamBlock?.statistics || [];
+      return stats.find(c => names.includes((c.name || '').toLowerCase()) || names.includes((c.displayName || '').toLowerCase()));
+    }
+
+    function renderPlayerTable(players, columns) {
+      if (!players.length) {
+        return `<div class="empty" style="padding:10px 4px;text-align:left">No stats yet.</div>`;
+      }
+      const head = columns.map(c => `<th class="${c.key === 'player' ? 'player' : ''}">${c.label}</th>`).join('');
+      const body = players.map(p => {
+        const cells = columns.map(c => {
+          if (c.key === 'player') {
+            return `<td class="player"><div class="pname"><span class="jersey">${escapeHtml(p.jersey)}</span><span class="nm">${escapeHtml(p.name)}</span></div></td>`;
+          }
+          let val = p.stats[c.key];
+          if (val == null && c.alt) val = p.stats[c.alt];
+          if (val == null) val = '—';
+          const hi = c.highlight && Number(val) > 0 ? ' td-hi' : '';
+          return `<td class="${hi}">${escapeHtml(val)}</td>`;
+        }).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      return `<table class="stats"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderTeamColumn(teamBlock, score, sideLabel) {
+      const team = teamBlock?.team || {};
+      const logo = teamLogo(team);
+      const rushing = parseStatMap(findCategory(teamBlock, ['rushing']) || { athletes: [], keys: [], labels: [] });
+      const receiving = parseStatMap(findCategory(teamBlock, ['receiving']) || { athletes: [], keys: [], labels: [] });
+      const passing = parseStatMap(findCategory(teamBlock, ['passing']) || { athletes: [], keys: [], labels: [] });
+
+      // Sort by yards desc
+      const rushSorted = [...rushing].sort((a, b) => Number(b.stats.rushingYards || 0) - Number(a.stats.rushingYards || 0));
+      const recvSorted = [...receiving].sort((a, b) => Number(b.stats.receivingYards || 0) - Number(a.stats.receivingYards || 0));
+
+      return `
+        <section class="col">
+          <div class="col-head">
+            ${logo ? `<img src="${escapeHtml(logo)}" alt="" />` : ''}
+            <h2>${escapeHtml(team.displayName || team.shortDisplayName || sideLabel)}</h2>
+            <div class="sc">${escapeHtml(score ?? '')}</div>
+          </div>
+          <div class="section">
+            <h3>Rushing</h3>
+            ${renderPlayerTable(rushSorted, [
+              { key: 'player', label: 'Player' },
+              { key: 'rushingAttempts', label: 'Att', alt: 'label:CAR' },
+              { key: 'rushingYards', label: 'Yds', alt: 'label:YDS' },
+              { key: 'rushingTouchdowns', label: 'TD', alt: 'label:TD', highlight: true },
+            ])}
+          </div>
+          <div class="section">
+            <h3>Receiving</h3>
+            ${renderPlayerTable(recvSorted, [
+              { key: 'player', label: 'Player' },
+              { key: 'receptions', label: 'Rec', alt: 'label:REC' },
+              { key: 'receivingYards', label: 'Yds', alt: 'label:YDS' },
+              { key: 'receivingTouchdowns', label: 'TD', alt: 'label:TD', highlight: true },
+            ])}
+          </div>
+          <div class="section">
+            <h3>Passing</h3>
+            ${renderPlayerTable(passing, [
+              { key: 'player', label: 'Player' },
+              { key: 'completions/passingAttempts', label: 'C/Att', alt: 'label:C/ATT' },
+              { key: 'passingYards', label: 'Yds', alt: 'label:YDS' },
+              { key: 'passingTouchdowns', label: 'TD', alt: 'label:TD', highlight: true },
+            ])}
+          </div>
+        </section>`;
+    }
+
+    function renderBoard() {
+      const data = state.summary;
+      if (!data) return;
+      const header = data.header || {};
+      const competition = header.competitions?.[0] || {};
+      const comps = competition.competitors || [];
+      const home = comps.find(c => c.homeAway === 'home') || comps[1];
+      const away = comps.find(c => c.homeAway === 'away') || comps[0];
+      const st = competition.status?.type || header.competitions?.[0]?.status?.type || {};
+      const detail = st.shortDetail || st.detail || st.description || '';
+      const kind = st.completed ? 'final' : (st.state === 'in' ? 'live' : 'sched');
+
+      const players = data.boxscore?.players || [];
+      // Match team blocks to home/away by id
+      const byId = Object.fromEntries(players.map(p => [String(p.team?.id), p]));
+      const awayBlock = byId[String(away?.id)] || byId[String(away?.team?.id)] || players[0];
+      const homeBlock = byId[String(home?.id)] || byId[String(home?.team?.id)] || players[1];
+
+      // Fallback: match by abbreviation
+      function blockFor(comp, fallback) {
+        const id = String(comp?.id || comp?.team?.id || '');
+        if (byId[id]) return byId[id];
+        const ab = (comp?.team?.abbreviation || '').toLowerCase();
+        return players.find(p => (p.team?.abbreviation || '').toLowerCase() === ab) || fallback;
+      }
+
+      const aBlock = blockFor(away, players[0]);
+      const hBlock = blockFor(home, players[1]);
+
+      const aLogo = away?.team?.logos?.[0]?.href || teamLogo(away?.team);
+      const hLogo = home?.team?.logos?.[0]?.href || teamLogo(home?.team);
+
+      $('placeholder').hidden = true;
+      $('board').hidden = false;
+      $('board').innerHTML = `
+        <div class="board-head">
+          <div class="matchup">
+            <div class="side">
+              ${aLogo ? `<img src="${escapeHtml(aLogo)}" alt="" />` : ''}
+              <div>
+                <div class="name">${escapeHtml(away?.team?.abbreviation || 'AWAY')}</div>
+                <div class="big-score">${escapeHtml(away?.score ?? '—')}</div>
+              </div>
+            </div>
+            <div class="vs">@</div>
+            <div class="side">
+              ${hLogo ? `<img src="${escapeHtml(hLogo)}" alt="" />` : ''}
+              <div>
+                <div class="name">${escapeHtml(home?.team?.abbreviation || 'HOME')}</div>
+                <div class="big-score">${escapeHtml(home?.score ?? '—')}</div>
+              </div>
+            </div>
+          </div>
+          <div class="status-pill">
+            <span class="dot ${kind === 'live' ? 'live' : kind === 'final' ? 'ok' : ''}"></span>
+            ${escapeHtml(detail || (kind === 'final' ? 'Final' : kind === 'live' ? 'Live' : 'Scheduled'))}
+          </div>
+        </div>
+        ${!players.length ? `<div class="empty">No box score yet — stats appear once the game starts.</div>` : `
+        <div class="cols">
+          ${renderTeamColumn(aBlock, away?.score, 'Away')}
+          ${renderTeamColumn(hBlock, home?.score, 'Home')}
+        </div>`}
+      `;
+    }
+
+    // Controls
+    document.querySelectorAll('.seg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.seg button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.league = btn.dataset.league;
+        state.selectedId = null;
+        state.summary = null;
+        $('board').hidden = true;
+        $('placeholder').hidden = false;
+        loadScoreboard();
+      });
+    });
+    $('btn-refresh').addEventListener('click', () => {
+      if (state.selectedId) {
+        loadScoreboard().then(() => loadSummary(state.selectedId));
+      } else {
+        loadScoreboard();
+      }
+    });
+
+    loadScoreboard();
+  </script>
+</body>
+</html>
