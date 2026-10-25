@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#07090d" />
-  <meta name="description" content="Live football stat pole — rush &amp; receiving yards from ESPN" />
+  <meta name="description" content="Live football stat pole — players in the game from ESPN" />
   <title>Stat Pole · Live Football</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,10 +72,11 @@
     }
     .seg button.active { background: var(--green-dim); color: var(--green); }
     .seg button:hover:not(.active) { color: var(--text); }
-    button.icon, button.refresh {
+    button.refresh {
       border: 1px solid var(--line); background: var(--panel); color: var(--text);
       border-radius: 999px; padding: 9px 14px; font: 600 .82rem var(--font); cursor: pointer;
       display: inline-flex; align-items: center; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
     }
     button.refresh:hover { border-color: #3a4d66; }
     button.refresh:disabled { opacity: .55; cursor: wait; }
@@ -90,15 +91,30 @@
     .games {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 10px; margin-bottom: 18px;
+      position: relative; z-index: 2;
     }
     .game {
+      display: block; width: 100%;
       text-align: left; border: 1px solid var(--line2); background: var(--panel);
-      border-radius: var(--radius); padding: 12px 14px; cursor: pointer; color: inherit;
-      transition: border-color .15s, transform .15s, background .15s; box-shadow: none;
-      font: inherit;
+      border-radius: var(--radius); padding: 12px 14px 10px; cursor: pointer; color: inherit;
+      transition: border-color .15s, transform .15s, background .15s, box-shadow .15s;
+      font: inherit; appearance: none; -webkit-appearance: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: rgba(34,197,94,.2);
+      position: relative; z-index: 1;
+      user-select: none;
     }
-    .game:hover { border-color: #355; transform: translateY(-1px); }
-    .game.selected { border-color: var(--green); background: linear-gradient(180deg, #132018, var(--panel)); box-shadow: var(--shadow); }
+    .game > * { pointer-events: none; }
+    .game:hover, .game:focus-visible {
+      border-color: #3d5a78; transform: translateY(-1px);
+      outline: none; box-shadow: 0 0 0 2px rgba(34,197,94,.25);
+    }
+    .game:active { transform: scale(0.99); }
+    .game.selected {
+      border-color: var(--green);
+      background: linear-gradient(180deg, #132018, var(--panel));
+      box-shadow: var(--shadow);
+    }
     .game-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
     .badge {
       font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
@@ -113,9 +129,16 @@
     .team img { width: 22px; height: 22px; object-fit: contain; }
     .team span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; font-size: .92rem; }
     .score { font-family: var(--display); font-size: 1.25rem; font-weight: 700; letter-spacing: .03em; min-width: 1.5ch; text-align: right; }
+    .tap-hint {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line2);
+      color: var(--green); font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .game.selected .tap-hint { color: var(--muted); }
     .board {
       border: 1px solid var(--line); background: var(--bg2); border-radius: 18px;
       overflow: hidden; box-shadow: var(--shadow);
+      position: relative; z-index: 1;
     }
     .board-head {
       display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;
@@ -132,12 +155,35 @@
       display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
       background: var(--panel); border: 1px solid var(--line); font-size: .8rem; color: var(--muted);
     }
-    .cols {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    .onfield {
+      padding: 14px 16px; border-bottom: 1px solid var(--line2);
+      background: linear-gradient(180deg, rgba(245,158,11,.06), transparent 80%);
     }
-    @media (max-width: 860px) {
-      .cols { grid-template-columns: 1fr; }
+    .onfield h3 {
+      margin: 0 0 6px; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--amber); font-weight: 700;
     }
+    .onfield .play-text { color: var(--muted); font-size: .84rem; line-height: 1.4; margin: 0 0 10px; }
+    .onfield .poss { color: var(--text); font-size: .8rem; font-weight: 600; margin-bottom: 10px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+      padding: 6px 10px 6px 6px; font-size: .82rem;
+    }
+    .chip .jersey {
+      min-width: 28px; height: 22px; padding: 0 6px; border-radius: 6px;
+      background: #0a0f16; border: 1px solid #2a384c; color: var(--muted);
+      font-family: var(--display); font-size: .85rem; display: inline-grid; place-items: center;
+    }
+    .chip .role {
+      font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--amber); background: var(--amber-dim); padding: 2px 6px; border-radius: 999px;
+    }
+    .chip .nm { font-weight: 600; }
+    .chip .pos { color: var(--dim); font-size: .75rem; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .col { border-right: 1px solid var(--line2); min-width: 0; }
     .col:last-child { border-right: 0; }
     @media (max-width: 860px) {
@@ -152,15 +198,16 @@
     .col-head img { width: 28px; height: 28px; }
     .col-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
     .col-head .sc { margin-left: auto; font-family: var(--display); font-size: 1.4rem; }
+    .ingroup-label {
+      margin: 0; padding: 12px 16px 0; font-size: .72rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--green); font-weight: 700;
+    }
     .section { padding: 12px 12px 4px; }
     .section h3 {
       margin: 0 0 8px; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
       color: var(--dim); font-weight: 700; padding: 0 4px;
     }
-    table.stats {
-      width: 100%; border-collapse: collapse; margin-bottom: 10px;
-      font-size: .86rem;
-    }
+    table.stats { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: .86rem; }
     table.stats th {
       text-align: right; color: var(--dim); font-weight: 600; font-size: .68rem;
       letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px;
@@ -186,13 +233,7 @@
     }
     .error { color: #fca5a5; }
     .placeholder { padding: 48px 20px; }
-    .skel {
-      height: 88px; border-radius: var(--radius); background: linear-gradient(90deg, #121821, #182030, #121821);
-      background-size: 200% 100%; animation: shimmer 1.2s infinite; border: 1px solid var(--line2);
-    }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     footer.note { margin-top: 18px; color: var(--dim); font-size: .75rem; text-align: center; }
-    footer.note a { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -202,7 +243,7 @@
         <div class="logo">#</div>
         <div>
           <h1>Stat Pole</h1>
-          <p>Live rush &amp; receiving yards · ESPN data</p>
+          <p>Players in the game · live ESPN box scores</p>
         </div>
       </div>
       <div class="controls">
@@ -210,7 +251,7 @@
           <button type="button" id="btn-nfl" class="active" data-league="nfl">NFL</button>
           <button type="button" id="btn-cfb" data-league="college-football">College</button>
         </div>
-        <button type="button" class="refresh" id="btn-refresh" title="Refresh">
+        <button type="button" class="refresh" id="btn-refresh" title="Refresh now">
           <span aria-hidden="true">↻</span> Refresh
         </button>
       </div>
@@ -225,10 +266,10 @@
     <div id="games" class="games" aria-label="Games"></div>
     <div id="board" class="board" hidden></div>
     <div id="placeholder" class="board placeholder">
-      Pick a game above to open the live stat pole.
+      Tap a game card above to see who’s in the game.
     </div>
     <footer class="note">
-      Unofficial fan tool. Box scores refresh from ESPN’s public site API.
+      Unofficial fan tool. Live games poll ESPN about every 6 seconds.
       Not affiliated with the NFL, NCAA, or ESPN.
     </footer>
   </div>
@@ -238,6 +279,8 @@
       nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl',
       'college-football': 'https://site.api.espn.com/apis/site/v2/sports/football/college-football',
     };
+    const SUMMARY_MS = 6000;
+    const SCOREBOARD_MS = 25000;
 
     const state = {
       league: 'nfl',
@@ -246,11 +289,14 @@
       summary: null,
       loadingGames: false,
       loadingSummary: false,
-      liveTimer: null,
+      summaryTimer: null,
+      scoreboardTimer: null,
       error: null,
+      gamesBound: false,
     };
 
     const $ = (id) => document.getElementById(id);
+    const sid = (v) => (v == null ? '' : String(v));
 
     function statusInfo(event) {
       const t = event?.status?.type || {};
@@ -269,28 +315,74 @@
     }
 
     function teamLogo(team) {
-      return team?.logo || team?.logos?.[0]?.href || '';
+      if (!team) return '';
+      if (typeof team.logo === 'string') return team.logo;
+      return team.logos?.[0]?.href || '';
     }
 
     function escapeHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
+    function stampUpdated() {
+      $('last-updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    }
+
     async function fetchJson(url) {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }
 
-    async function loadScoreboard() {
+    function selectedEvent() {
+      return state.events.find(e => sid(e.id) === sid(state.selectedId)) || null;
+    }
+
+    function isSelectedLive() {
+      const ev = selectedEvent();
+      return !!(ev && statusInfo(ev).kind === 'live');
+    }
+
+    function schedulePolling() {
+      clearInterval(state.summaryTimer);
+      clearInterval(state.scoreboardTimer);
+      state.summaryTimer = null;
+      state.scoreboardTimer = null;
+
+      const anyLive = state.events.some(e => statusInfo(e).kind === 'live');
+      const selectedLive = isSelectedLive();
+
+      if (selectedLive && state.selectedId) {
+        $('auto-note').textContent = `Live box score every ${SUMMARY_MS / 1000}s`;
+        state.summaryTimer = setInterval(() => {
+          if (!state.loadingSummary && state.selectedId) {
+            loadSummary(state.selectedId, { quiet: true, fromPoll: true });
+          }
+        }, SUMMARY_MS);
+        state.scoreboardTimer = setInterval(() => {
+          if (!state.loadingGames) loadScoreboard({ fromPoll: true });
+        }, SCOREBOARD_MS);
+      } else if (anyLive) {
+        $('auto-note').textContent = `Scoreboard every ${SCOREBOARD_MS / 1000}s while games are live`;
+        state.scoreboardTimer = setInterval(() => {
+          if (!state.loadingGames) loadScoreboard({ fromPoll: true });
+        }, SCOREBOARD_MS);
+      } else if (state.selectedId) {
+        $('auto-note').textContent = 'Manual refresh (game not live)';
+      } else {
+        $('auto-note').textContent = '';
+      }
+    }
+
+    async function loadScoreboard({ fromPoll = false } = {}) {
+      if (state.loadingGames) return;
       state.loadingGames = true;
       state.error = null;
-      $('btn-refresh').disabled = true;
-      setStatus('loading', 'Loading games…');
+      if (!fromPoll) $('btn-refresh').disabled = true;
+      if (!fromPoll) setStatus('loading', 'Loading games…');
       try {
         const data = await fetchJson(`${API[state.league]}/scoreboard`);
-        state.events = data.events || [];
-        // Prefer live first, then scheduled, then final
+        state.events = (data.events || []).map(e => ({ ...e, id: sid(e.id) }));
         state.events.sort((a, b) => {
           const rank = (e) => {
             const s = statusInfo(e).kind;
@@ -301,42 +393,50 @@
         renderGames();
         const liveCount = state.events.filter(e => statusInfo(e).kind === 'live').length;
         setStatus(liveCount ? 'live' : 'ok', `${state.events.length} games · ${liveCount} live`);
-        $('last-updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        stampUpdated();
         if (state.selectedId) {
-          const still = state.events.some(e => e.id === state.selectedId);
-          if (still) await loadSummary(state.selectedId, { quiet: true });
-          else {
+          const still = state.events.some(e => sid(e.id) === sid(state.selectedId));
+          if (!still) {
             state.selectedId = null;
             state.summary = null;
             $('board').hidden = true;
             $('placeholder').hidden = false;
           }
         }
-        scheduleAutoRefresh();
+        schedulePolling();
       } catch (err) {
         state.error = err;
         setStatus('err', 'Couldn’t load scoreboard');
-        $('games').innerHTML = `<div class="error">Scoreboard failed: ${escapeHtml(err.message)}. Check your connection and try Refresh.</div>`;
+        $('games').innerHTML = `<div class="error">Scoreboard failed: ${escapeHtml(err.message)}. Tap Refresh.</div>`;
       } finally {
         state.loadingGames = false;
         $('btn-refresh').disabled = false;
       }
     }
 
-    async function loadSummary(eventId, { quiet = false } = {}) {
+    async function loadSummary(eventId, { quiet = false, fromPoll = false } = {}) {
+      const id = sid(eventId);
+      if (!id) return;
+      if (state.loadingSummary && fromPoll) return;
       state.loadingSummary = true;
+      state.selectedId = id;
       if (!quiet) {
         $('placeholder').hidden = true;
         $('board').hidden = false;
-        $('board').innerHTML = `<div class="empty">Loading box score…</div>`;
+        $('board').innerHTML = `<div class="empty">Loading who’s in the game…</div>`;
+        renderGames();
+        try { $('board').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
       }
       try {
-        const data = await fetchJson(`${API[state.league]}/summary?event=${encodeURIComponent(eventId)}`);
+        const data = await fetchJson(`${API[state.league]}/summary?event=${encodeURIComponent(id)}`);
+        // Ignore stale responses if user clicked another game
+        if (sid(state.selectedId) !== id) return;
         state.summary = data;
-        state.selectedId = eventId;
         renderBoard();
-        scheduleAutoRefresh();
+        stampUpdated();
+        schedulePolling();
       } catch (err) {
+        if (sid(state.selectedId) !== id) return;
         $('board').hidden = false;
         $('placeholder').hidden = true;
         $('board').innerHTML = `<div class="error">Box score failed: ${escapeHtml(err.message)}</div>`;
@@ -351,25 +451,6 @@
       $('status-text').textContent = text;
     }
 
-    function scheduleAutoRefresh() {
-      clearInterval(state.liveTimer);
-      const selected = state.events.find(e => e.id === state.selectedId);
-      const anyLive = state.events.some(e => statusInfo(e).kind === 'live');
-      const selectedLive = selected && statusInfo(selected).kind === 'live';
-      if (selectedLive || (!state.selectedId && anyLive)) {
-        $('auto-note').textContent = 'Auto-refresh ~30s while live';
-        state.liveTimer = setInterval(() => {
-          loadScoreboard();
-        }, 30000);
-      } else {
-        $('auto-note').textContent = selected ? 'Manual refresh' : (anyLive ? 'Auto-refresh ~30s' : '');
-        if (anyLive) {
-          state.liveTimer = setInterval(() => loadScoreboard(), 30000);
-          $('auto-note').textContent = 'Auto-refresh ~30s while games are live';
-        }
-      }
-    }
-
     function renderGames() {
       const root = $('games');
       if (!state.events.length) {
@@ -379,37 +460,43 @@
       root.innerHTML = state.events.map(ev => {
         const st = statusInfo(ev);
         const { home, away } = competitors(ev);
-        const selected = ev.id === state.selectedId ? ' selected' : '';
+        const id = sid(ev.id);
+        const selected = id === sid(state.selectedId) ? ' selected' : '';
         const aName = away?.team?.abbreviation || away?.team?.shortDisplayName || 'AWAY';
         const hName = home?.team?.abbreviation || home?.team?.shortDisplayName || 'HOME';
         const aLogo = teamLogo(away?.team);
         const hLogo = teamLogo(home?.team);
         const showScore = st.kind !== 'sched';
+        const hint = selected ? 'Showing players ↓' : 'Tap for players in this game →';
         return `
-          <button type="button" class="game${selected}" data-id="${escapeHtml(ev.id)}" aria-pressed="${selected ? 'true' : 'false'}">
+          <button type="button" class="game${selected}" data-game-id="${escapeHtml(id)}" aria-pressed="${selected ? 'true' : 'false'}">
             <div class="game-top">
               <span class="badge ${st.kind}">${st.label}</span>
               <span class="clock">${escapeHtml(st.detail)}</span>
             </div>
             <div class="row">
-              <div class="team">${aLogo ? `<img src="${escapeHtml(aLogo)}" alt="" />` : ''}<span>${escapeHtml(aName)}</span></div>
+              <div class="team">${aLogo ? `<img src="${escapeHtml(aLogo)}" alt="" draggable="false" />` : ''}<span>${escapeHtml(aName)}</span></div>
               <div class="score">${showScore ? escapeHtml(away?.score ?? '') : '—'}</div>
             </div>
             <div class="row">
-              <div class="team">${hLogo ? `<img src="${escapeHtml(hLogo)}" alt="" />` : ''}<span>${escapeHtml(hName)}</span></div>
+              <div class="team">${hLogo ? `<img src="${escapeHtml(hLogo)}" alt="" draggable="false" />` : ''}<span>${escapeHtml(hName)}</span></div>
               <div class="score">${showScore ? escapeHtml(home?.score ?? '') : '—'}</div>
             </div>
+            <div class="tap-hint">${hint}</div>
           </button>`;
       }).join('');
+    }
 
-      root.querySelectorAll('.game').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-id');
-          loadSummary(id);
-          // re-render selection highlight immediately
-          state.selectedId = id;
-          renderGames();
-        });
+    function bindGamesOnce() {
+      if (state.gamesBound) return;
+      state.gamesBound = true;
+      $('games').addEventListener('click', (e) => {
+        const btn = e.target.closest('button.game[data-game-id]');
+        if (!btn || !$('games').contains(btn)) return;
+        e.preventDefault();
+        const id = sid(btn.getAttribute('data-game-id'));
+        if (!id) return;
+        loadSummary(id);
       });
     }
 
@@ -439,7 +526,7 @@
 
     function renderPlayerTable(players, columns) {
       if (!players.length) {
-        return `<div class="empty" style="padding:10px 4px;text-align:left">No stats yet.</div>`;
+        return `<div class="empty" style="padding:10px 4px;text-align:left">None yet.</div>`;
       }
       const head = columns.map(c => `<th class="${c.key === 'player' ? 'player' : ''}">${c.label}</th>`).join('');
       const body = players.map(p => {
@@ -458,6 +545,86 @@
       return `<table class="stats"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
     }
 
+    function collectRecentPlays(summary) {
+      const drives = summary?.drives || {};
+      const plays = [];
+      const cur = drives.current;
+      if (cur?.plays) plays.push(...cur.plays);
+      const prev = drives.previous || [];
+      if (prev.length && plays.length < 3) {
+        const last = prev[prev.length - 1];
+        if (last?.plays) plays.push(...last.plays);
+      }
+      return plays;
+    }
+
+    function lastPlayWithParticipants(summary) {
+      const plays = collectRecentPlays(summary);
+      for (let i = plays.length - 1; i >= 0; i--) {
+        if (plays[i]?.participants?.length) return plays[i];
+      }
+      return plays.length ? plays[plays.length - 1] : null;
+    }
+
+    function roleLabel(type) {
+      const map = {
+        passer: 'Pass', rusher: 'Rush', receiver: 'Rec', tackler: 'Tack',
+        interceptor: 'INT', fumbler: 'Fum', recoverer: 'Recov',
+        kicker: 'Kick', returner: 'Ret', punter: 'Punt',
+      };
+      return map[type] || (type ? String(type) : 'Play');
+    }
+
+    function renderOnField(summary, kind) {
+      if (kind !== 'live') return '';
+      const ev = selectedEvent();
+      const sit = ev?.competitions?.[0]?.situation || null;
+      const cur = summary?.drives?.current || null;
+      const play = lastPlayWithParticipants(summary);
+      const possTeam = cur?.team?.abbreviation || '';
+      const downText = sit?.downDistanceText || play?.start?.downDistanceText || cur?.description || '';
+      const playText = play?.text || sit?.lastPlay?.text || '';
+      const parts = (play?.participants || []).map(part => {
+        const a = part.athlete || {};
+        return {
+          id: a.id,
+          name: a.displayName || a.fullName || a.shortName || 'Player',
+          jersey: a.jersey != null && a.jersey !== '' ? String(a.jersey) : '—',
+          pos: a.position?.abbreviation || '',
+          team: a.team?.abbreviation || '',
+          role: roleLabel(part.type),
+        };
+      });
+      // de-dupe by id keeping first role
+      const seen = new Set();
+      const chips = parts.filter(p => {
+        const k = sid(p.id) || p.name;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+
+      const chipsHtml = chips.length
+        ? `<div class="chip-row">${chips.map(p => `
+            <div class="chip">
+              <span class="jersey">${escapeHtml(p.jersey)}</span>
+              <span class="role">${escapeHtml(p.role)}</span>
+              <span class="nm">${escapeHtml(p.name)}</span>
+              <span class="pos">${escapeHtml([p.pos, p.team].filter(Boolean).join(' · '))}</span>
+            </div>`).join('')}</div>`
+        : `<div class="empty" style="padding:6px 0;text-align:left">Waiting for the next snap with named players…</div>`;
+
+      return `
+        <div class="onfield">
+          <h3>On the field · last play</h3>
+          <div class="poss">${escapeHtml(
+            [possTeam ? `${possTeam} ball` : '', downText].filter(Boolean).join(' · ') || 'Live possession'
+          )}</div>
+          ${playText ? `<p class="play-text">${escapeHtml(playText)}</p>` : ''}
+          ${chipsHtml}
+        </div>`;
+    }
+
     function renderTeamColumn(teamBlock, score, sideLabel) {
       const team = teamBlock?.team || {};
       const logo = teamLogo(team);
@@ -465,7 +632,6 @@
       const receiving = parseStatMap(findCategory(teamBlock, ['receiving']) || { athletes: [], keys: [], labels: [] });
       const passing = parseStatMap(findCategory(teamBlock, ['passing']) || { athletes: [], keys: [], labels: [] });
 
-      // Sort by yards desc
       const rushSorted = [...rushing].sort((a, b) => Number(b.stats.rushingYards || 0) - Number(a.stats.rushingYards || 0));
       const recvSorted = [...receiving].sort((a, b) => Number(b.stats.receivingYards || 0) - Number(a.stats.receivingYards || 0));
 
@@ -476,6 +642,7 @@
             <h2>${escapeHtml(team.displayName || team.shortDisplayName || sideLabel)}</h2>
             <div class="sc">${escapeHtml(score ?? '')}</div>
           </div>
+          <p class="ingroup-label">In this game</p>
           <div class="section">
             <h3>Rushing</h3>
             ${renderPlayerTable(rushSorted, [
@@ -514,19 +681,15 @@
       const comps = competition.competitors || [];
       const home = comps.find(c => c.homeAway === 'home') || comps[1];
       const away = comps.find(c => c.homeAway === 'away') || comps[0];
-      const st = competition.status?.type || header.competitions?.[0]?.status?.type || {};
+      const st = competition.status?.type || {};
       const detail = st.shortDetail || st.detail || st.description || '';
       const kind = st.completed ? 'final' : (st.state === 'in' ? 'live' : 'sched');
 
       const players = data.boxscore?.players || [];
-      // Match team blocks to home/away by id
-      const byId = Object.fromEntries(players.map(p => [String(p.team?.id), p]));
-      const awayBlock = byId[String(away?.id)] || byId[String(away?.team?.id)] || players[0];
-      const homeBlock = byId[String(home?.id)] || byId[String(home?.team?.id)] || players[1];
+      const byId = Object.fromEntries(players.map(p => [sid(p.team?.id), p]));
 
-      // Fallback: match by abbreviation
       function blockFor(comp, fallback) {
-        const id = String(comp?.id || comp?.team?.id || '');
+        const id = sid(comp?.id || comp?.team?.id);
         if (byId[id]) return byId[id];
         const ab = (comp?.team?.abbreviation || '').toLowerCase();
         return players.find(p => (p.team?.abbreviation || '').toLowerCase() === ab) || fallback;
@@ -534,7 +697,6 @@
 
       const aBlock = blockFor(away, players[0]);
       const hBlock = blockFor(home, players[1]);
-
       const aLogo = away?.team?.logos?.[0]?.href || teamLogo(away?.team);
       const hLogo = home?.team?.logos?.[0]?.href || teamLogo(home?.team);
 
@@ -564,7 +726,8 @@
             ${escapeHtml(detail || (kind === 'final' ? 'Final' : kind === 'live' ? 'Live' : 'Scheduled'))}
           </div>
         </div>
-        ${!players.length ? `<div class="empty">No box score yet — stats appear once the game starts.</div>` : `
+        ${renderOnField(data, kind)}
+        ${!players.length ? `<div class="empty">No box score yet — stats appear once players get involved.</div>` : `
         <div class="cols">
           ${renderTeamColumn(aBlock, away?.score, 'Away')}
           ${renderTeamColumn(hBlock, home?.score, 'Home')}
@@ -572,7 +735,6 @@
       `;
     }
 
-    // Controls
     document.querySelectorAll('.seg button').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.seg button').forEach(b => b.classList.remove('active'));
@@ -580,19 +742,20 @@
         state.league = btn.dataset.league;
         state.selectedId = null;
         state.summary = null;
+        clearInterval(state.summaryTimer);
+        clearInterval(state.scoreboardTimer);
         $('board').hidden = true;
         $('placeholder').hidden = false;
         loadScoreboard();
       });
     });
-    $('btn-refresh').addEventListener('click', () => {
-      if (state.selectedId) {
-        loadScoreboard().then(() => loadSummary(state.selectedId));
-      } else {
-        loadScoreboard();
-      }
+
+    $('btn-refresh').addEventListener('click', async () => {
+      await loadScoreboard();
+      if (state.selectedId) await loadSummary(state.selectedId);
     });
 
+    bindGamesOnce();
     loadScoreboard();
   </script>
 </body>
